@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -28,11 +29,14 @@ func checkPoem(guide bool, p poem.Poem) {
 		fmt.Println("Stanza", i)
 		for j := 0; j < len(p.Stanzas[i]); j++ {
 			if guide {
-				fmt.Printf("%04d: %s", j+1, p.Stanzas[i][j])
+				fmt.Printf("%04d: %s\n", j+1, p.Stanzas[i][j])
 			}
 
 			line, err := readLine(fmt.Sprintf("%04d> ", j+1))
 			if err != nil {
+				if err == io.EOF {
+					os.Exit(0)
+				}
 				fmt.Fprintf(os.Stderr, "%s\n", err)
 				os.Exit(1)
 			}

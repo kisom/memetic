@@ -22,13 +22,13 @@ func readLine(prompt string) (line string, err error) {
 	return
 }
 
-func checkPoem(guide bool, p poem.Poem) {
+func checkPoem(p poem.Poem) {
 	fmt.Printf("Selected: %s by %s (%d)\n", p.Title, p.Author, p.Year)
 
-	for i := 0; i < len(p.Stanzas); i++ {
+	for i := config.start; i < config.end; i++ {
 		fmt.Println("Stanza", i)
 		for j := 0; j < len(p.Stanzas[i]); j++ {
-			if guide {
+			if config.guide {
 				fmt.Printf("%04d: %s\n", j+1, p.Stanzas[i][j])
 			}
 
@@ -43,7 +43,12 @@ func checkPoem(guide bool, p poem.Poem) {
 
 			if line != p.Stanzas[i][j] {
 				fmt.Println(p.Stanzas[i][j])
-				j--
+
+				if config.noResetStanza {
+					j--
+				} else {
+					j = -1
+				}
 				continue
 			}
 		}
@@ -52,9 +57,37 @@ func checkPoem(guide bool, p poem.Poem) {
 	fmt.Println("COMPLETE")
 }
 
+var config struct {
+	guide         bool
+	noResetStanza bool
+	start, end    int
+}
+
+func checkArgs(p poem.Poem) {
+	if config.start < 1 {
+		fmt.Fprintf(os.Stderr, "Can't start from a stanza less than 1.")
+		os.Exit(1)
+	}
+
+	if config.end < 0 {
+		fmt.Fprintf(os.Stderr, "Can't end from a stanza less than 0.")
+		os.Exit(1)
+	}
+
+	if config.start > len(p.Stanzas) {
+		config.start = len(p.Stanzas)
+	}
+
+	if config.start > len(p.Stanzas) {
+		config.end = len(p.Stanzas)
+	}
+}
+
 func main() {
-	var guide bool
-	flag.BoolVar(&guide, "g", false, "guided mode")
+	flag.BoolVar(&config.guide, "g", false, "guided mode")
+	flag.BoolVar(&config.noResetStanza, "n", false, "don't reset from the beginning of the stanza")
+	flag.IntVar(&config.start, "s", 1, "starting stanza (normal people style, not array style)")
+	flag.IntVar(&config.end, "e", 0, "ending stanza (normal people style, not array style; 0 means end-of-poem)")
 	flag.Parse()
 
 	if flag.NArg() == 0 {
@@ -72,5 +105,15 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Title \"%s\" wasn't found in the library.\n", selection)
 		os.Exit(1)
 	}
-	checkPoem(guide, p)
+
+	if config.end == 0 {
+		config.end = 1
+	}
+
+	checkArgs(p)
+
+	config.start-- // Go from natural to array style.
+	config.end--
+
+	checkPoem(p)
 }
